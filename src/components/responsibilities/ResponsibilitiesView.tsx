@@ -4,36 +4,27 @@ import {
   Download,
   Plus,
   Search,
-  Filter,
   Layers,
   ChevronRight,
   ChevronDown,
   Tag,
   User,
   Hash,
-  Activity,
   FileSpreadsheet,
   AlertCircle,
   CheckCircle,
   Edit2,
   Trash2,
   BookmarkCheck,
-  Clock,
-  Sparkles,
 } from 'lucide-react';
 import {
   AppDataState,
   ProcessItem,
   Responsibility,
   ResponsibilityOccurrence,
-  FrequencyType,
-  OperationalStatus,
-  EvaluationResult,
   UserProfile,
 } from '../../types/models';
 import { Modal } from '../common/Modal';
-import { StatusBadge, EvaluationBadge } from '../common/Badges';
-import { ProgressBar } from '../common/ProgressBar';
 import { parseProcessFile, downloadProcessTemplateCSV } from '../../services/processImportService';
 
 interface ResponsibilitiesViewProps {
@@ -117,9 +108,43 @@ export const ResponsibilitiesView: React.FC<ResponsibilitiesViewProps> = ({
   // Lista de usuarios asignables (excluyendo observadores como Lorena y Edgar)
   const assignableUsers = (state.users || []).filter((u) => u.role !== 'VIEWER');
 
-  // Opciones únicas para filtros
+  // Opciones únicas para filtros y autocompletado rápido
   const macroOptions = Array.from(new Set(state.processes.map((p) => p.macroproceso).filter(Boolean)));
+  const processOptions = Array.from(new Set(state.processes.map((p) => p.proceso).filter(Boolean)));
   const responsibleOptions = Array.from(new Set(state.processes.map((p) => p.responsable).filter(Boolean)));
+
+  // Generador de correlativo N12 sugerido
+  const getSuggestedN12 = () => {
+    const count = state.processes.length + 1;
+    return `N12-${String(count).padStart(3, '0')}`;
+  };
+
+  // Expandir / Colapsar todos los acordeones para máxima estabilidad visual
+  const handleExpandAll = () => {
+    const allM: Record<string, boolean> = {};
+    const allP: Record<string, boolean> = {};
+    Object.keys(hierarchyData).forEach((m) => {
+      allM[m] = true;
+      Object.keys(hierarchyData[m] || {}).forEach((p) => {
+        allP[`${m}__${p}`] = true;
+      });
+    });
+    setExpandedMacros(allM);
+    setExpandedProcs(allP);
+  };
+
+  const handleCollapseAll = () => {
+    const noM: Record<string, boolean> = {};
+    const noP: Record<string, boolean> = {};
+    Object.keys(hierarchyData).forEach((m) => {
+      noM[m] = false;
+      Object.keys(hierarchyData[m] || {}).forEach((p) => {
+        noP[`${m}__${p}`] = false;
+      });
+    });
+    setExpandedMacros(noM);
+    setExpandedProcs(noP);
+  };
 
   // Procesos filtrados
   const filteredProcesses = state.processes.filter((p) => {
@@ -196,7 +221,7 @@ export const ResponsibilitiesView: React.FC<ResponsibilitiesViewProps> = ({
     setImportErrors([]);
   };
 
-  const handleOpenProcessModal = (item?: ProcessItem) => {
+  const handleOpenProcessModal = (item?: ProcessItem, defaultMacro?: string, defaultProc?: string) => {
     if (item) {
       setEditingProcess(item);
       setProcForm({
@@ -212,21 +237,21 @@ export const ResponsibilitiesView: React.FC<ResponsibilitiesViewProps> = ({
     } else {
       setEditingProcess(null);
       setProcForm({
-        macroproceso: '',
-        proceso: '',
-        codigoN12: '',
+        macroproceso: defaultMacro || (macroOptions[0] || ''),
+        proceso: defaultProc || '',
+        codigoN12: getSuggestedN12(),
         subproceso: '',
         fase: '',
         actividades: '',
         keyword: '',
-        responsable: 'Jason',
+        responsable: currentUser.name || assignableUsers[0]?.name || 'Jason',
       });
     }
     setIsProcessModalOpen(true);
   };
 
-  const handleSaveProcess = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveProcess = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!procForm.proceso || !procForm.actividades) {
       alert('Por favor completa al menos el Proceso y las Actividades.');
       return;
@@ -258,6 +283,34 @@ export const ResponsibilitiesView: React.FC<ResponsibilitiesViewProps> = ({
     }
 
     setIsProcessModalOpen(false);
+  };
+
+  // Modo rápido: Guardar y preparar siguiente actividad en 1 clic
+  const handleSaveAndAddAnother = async () => {
+    if (!procForm.proceso || !procForm.actividades) {
+      alert('Por favor completa al menos el Proceso y las Actividades.');
+      return;
+    }
+
+    await onAddProcess({
+      macroproceso: procForm.macroproceso || 'Gestión Operativa',
+      proceso: procForm.proceso,
+      codigoN12: procForm.codigoN12 || `P-${Date.now().toString().slice(-4)}`,
+      subproceso: procForm.subproceso || 'General',
+      fase: procForm.fase,
+      actividades: procForm.actividades,
+      keyword: procForm.keyword,
+      responsable: procForm.responsable,
+      isDemo: false,
+    });
+
+    const nextCount = state.processes.length + 2;
+    setProcForm((prev) => ({
+      ...prev,
+      codigoN12: `N12-${String(nextCount).padStart(3, '0')}`,
+      actividades: '',
+      keyword: '',
+    }));
   };
 
   return (
@@ -359,6 +412,28 @@ export const ResponsibilitiesView: React.FC<ResponsibilitiesViewProps> = ({
                   Matriz / Tabla
                 </button>
               </div>
+
+              {/* Botones de control de acordeón en modo jerarquía */}
+              {viewMode === 'hierarchy' && Object.keys(hierarchyData).length > 0 && (
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleExpandAll}
+                    title="Expandir todos los macroprocesos y procesos de golpe"
+                    style={{ fontSize: '11px', padding: '5px 8px' }}
+                  >
+                    Expandir todo
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleCollapseAll}
+                    title="Colapsar todos los macroprocesos y procesos para vista compacta"
+                    style={{ fontSize: '11px', padding: '5px 8px' }}
+                  >
+                    Colapsar todo
+                  </button>
+                </div>
+              )}
 
               {/* Botón Importar Excel / CSV - Solo Admin */}
               {!isViewer && (
@@ -913,12 +988,25 @@ export const ResponsibilitiesView: React.FC<ResponsibilitiesViewProps> = ({
       <Modal
         isOpen={isProcessModalOpen}
         onClose={() => setIsProcessModalOpen(false)}
-        title={editingProcess ? 'Editar Proceso / Actividad' : 'Nuevo Registro de Proceso'}
+        title={editingProcess ? 'Editar Proceso / Actividad' : 'Nuevo Registro de Proceso / Actividad'}
       >
-        <form onSubmit={handleSaveProcess}>
+        <form
+          onSubmit={handleSaveProcess}
+          onKeyDown={(e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+              e.preventDefault();
+              handleSaveProcess();
+            }
+          }}
+        >
+          {/* Macroproceso con sugerencias rápidas */}
           <div className="form-group">
-            <label className="form-label">Macro proceso *</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label className="form-label">Macro proceso *</label>
+              <span style={{ fontSize: '11px', color: 'var(--text-subtle)' }}>Sugerido o escribe uno nuevo</span>
+            </div>
             <input
+              list="macro-suggestions"
               type="text"
               placeholder="ej. Gestión de TI y Operaciones"
               value={procForm.macroproceso}
@@ -926,12 +1014,44 @@ export const ResponsibilitiesView: React.FC<ResponsibilitiesViewProps> = ({
               className="form-control"
               required
             />
+            <datalist id="macro-suggestions">
+              {macroOptions.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
+
+            {/* Chips de sugerencias con 1 clic */}
+            {macroOptions.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                {macroOptions.slice(0, 5).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setProcForm((prev) => ({ ...prev, macroproceso: m }))}
+                    style={{
+                      fontSize: '11px',
+                      padding: '3px 9px',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: procForm.macroproceso === m ? 'rgba(56, 189, 248, 0.2)' : 'var(--bg-input)',
+                      border: procForm.macroproceso === m ? '1px solid #38bdf8' : '1px solid var(--border-color)',
+                      color: procForm.macroproceso === m ? '#38bdf8' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+          {/* Grid responsive para Proceso y Código */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
             <div className="form-group">
               <label className="form-label">Proceso *</label>
               <input
+                list="proc-suggestions"
                 type="text"
                 placeholder="ej. Operaciones de Red e Infraestructura"
                 value={procForm.proceso}
@@ -939,21 +1059,38 @@ export const ResponsibilitiesView: React.FC<ResponsibilitiesViewProps> = ({
                 className="form-control"
                 required
               />
+              <datalist id="proc-suggestions">
+                {processOptions.map((p) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
             </div>
 
             <div className="form-group">
-              <label className="form-label">N12 / Código</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="form-label">N12 / Código</label>
+                <button
+                  type="button"
+                  onClick={() => setProcForm((prev) => ({ ...prev, codigoN12: getSuggestedN12() }))}
+                  style={{ fontSize: '10px', color: '#38bdf8', background: 'transparent', padding: 0 }}
+                  title="Generar correlativo automático"
+                >
+                  ⚡ Auto
+                </button>
+              </div>
               <input
                 type="text"
                 placeholder="ej. N12-001"
                 value={procForm.codigoN12}
                 onChange={(e) => setProcForm({ ...procForm, codigoN12: e.target.value })}
                 className="form-control"
+                style={{ fontFamily: 'monospace' }}
               />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          {/* Grid responsive para Subproceso y Fase */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
             <div className="form-group">
               <label className="form-label">Sub proceso</label>
               <input
@@ -981,7 +1118,7 @@ export const ResponsibilitiesView: React.FC<ResponsibilitiesViewProps> = ({
             <label className="form-label">Actividades / Tareas *</label>
             <textarea
               rows={3}
-              placeholder="Descripción de las actividades ejecutadas en este proceso..."
+              placeholder="Descripción concreta de la actividad o tarea ejecutada..."
               value={procForm.actividades}
               onChange={(e) => setProcForm({ ...procForm, actividades: e.target.value })}
               className="form-control"
@@ -989,7 +1126,8 @@ export const ResponsibilitiesView: React.FC<ResponsibilitiesViewProps> = ({
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          {/* Grid responsive para Keywords y Responsable */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
             <div className="form-group">
               <label className="form-label">Keywords / Etiquetas</label>
               <input
@@ -1018,13 +1156,45 @@ export const ResponsibilitiesView: React.FC<ResponsibilitiesViewProps> = ({
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setIsProcessModalOpen(false)}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn btn-primary">
-              {editingProcess ? 'Guardar Cambios' : 'Registrar Proceso'}
-            </button>
+          {/* Barra de acciones responsive */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              marginTop: '16px',
+              paddingTop: '12px',
+              borderTop: '1px solid var(--border-subtle)',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ fontSize: '11px', color: 'var(--text-subtle)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>Atajo: <b>Ctrl + Enter</b> para guardar</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginLeft: 'auto' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setIsProcessModalOpen(false)}>
+                Cancelar
+              </button>
+
+              {!editingProcess && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleSaveAndAddAnother}
+                  title="Guarda esta actividad y deja el formulario listo para escribir la siguiente tarea de inmediato"
+                  style={{ borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38bdf8' }}
+                >
+                  <Plus size={14} />
+                  <span>Guardar y Añadir Otra</span>
+                </button>
+              )}
+
+              <button type="submit" className="btn btn-primary">
+                {editingProcess ? 'Guardar Cambios' : 'Registrar Proceso'}
+              </button>
+            </div>
           </div>
         </form>
       </Modal>
