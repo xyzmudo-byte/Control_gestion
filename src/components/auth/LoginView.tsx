@@ -78,8 +78,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, users }) =
           <div className="login-logo-glow">
             <ProcessFlowLogo size={48} />
           </div>
-          <h1 className="login-title">CONTROL DE GESTIÓN</h1>
-          <p className="login-subtitle">Área Informática Operacional • Sistema Central</p>
+          <h1 className="login-title">GESTIÓN DE INFORMACIÓN</h1>
+          <p className="login-subtitle">Informática Operacional • Sistema Central</p>
         </div>
 
         {/* Mensaje de Error */}

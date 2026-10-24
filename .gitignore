@@ -19,10 +19,9 @@ dist-ssr
 .env.local
 .env.production
 
-# Base de datos local (se usa Supabase en producción)
-server/data/
-server/data/database.json
+# Base de datos local (se versiona database.json como estado inicial, se ignoran backups y temporales)
 server/data/backups/
+server/data/*.tmp
 
 # Editor
 .vscode/*

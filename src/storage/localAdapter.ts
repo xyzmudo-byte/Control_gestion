@@ -13,23 +13,23 @@ export class LocalStorageAdapter implements IStorageAdapter {
   }
 
   private normalizeState(raw: any): AppDataState {
-    const demo = getInitialDemoData();
+    const empty = getEmptyDataState();
     return {
-      users: raw?.users && raw.users.length > 0 ? raw.users : demo.users,
-      currentUserId: raw?.currentUserId || demo.currentUserId,
-      processes: Array.isArray(raw?.processes) ? raw.processes : demo.processes,
-      responsibilities: Array.isArray(raw?.responsibilities) ? raw.responsibilities : demo.responsibilities,
-      occurrences: Array.isArray(raw?.occurrences) ? raw.occurrences : demo.occurrences,
-      deliverables: Array.isArray(raw?.deliverables) ? raw.deliverables : demo.deliverables,
-      deliverableUpdates: Array.isArray(raw?.deliverableUpdates) ? raw.deliverableUpdates : demo.deliverableUpdates,
-      projects: Array.isArray(raw?.projects) ? raw.projects : demo.projects,
-      projectMilestones: Array.isArray(raw?.projectMilestones) ? raw.projectMilestones : demo.projectMilestones,
-      projectTasks: Array.isArray(raw?.projectTasks) ? raw.projectTasks : demo.projectTasks,
-      projectPhases: Array.isArray(raw?.projectPhases) ? raw.projectPhases : demo.projectPhases,
-      ideas: Array.isArray(raw?.ideas) ? raw.ideas : demo.ideas,
-      logbook: Array.isArray(raw?.logbook) ? raw.logbook : demo.logbook,
-      meetings: Array.isArray(raw?.meetings) ? raw.meetings : demo.meetings,
-      chatMessages: Array.isArray(raw?.chatMessages) ? raw.chatMessages : demo.chatMessages,
+      users: raw?.users && raw.users.length > 0 ? raw.users : empty.users,
+      currentUserId: raw?.currentUserId || 'usr-jherson',
+      processes: Array.isArray(raw?.processes) ? raw.processes : [],
+      responsibilities: Array.isArray(raw?.responsibilities) ? raw.responsibilities : [],
+      occurrences: Array.isArray(raw?.occurrences) ? raw.occurrences : [],
+      deliverables: Array.isArray(raw?.deliverables) ? raw.deliverables : [],
+      deliverableUpdates: Array.isArray(raw?.deliverableUpdates) ? raw.deliverableUpdates : [],
+      projects: Array.isArray(raw?.projects) ? raw.projects : [],
+      projectMilestones: Array.isArray(raw?.projectMilestones) ? raw.projectMilestones : [],
+      projectTasks: Array.isArray(raw?.projectTasks) ? raw.projectTasks : [],
+      projectPhases: Array.isArray(raw?.projectPhases) ? raw.projectPhases : [],
+      ideas: Array.isArray(raw?.ideas) ? raw.ideas : [],
+      logbook: Array.isArray(raw?.logbook) ? raw.logbook : [],
+      meetings: Array.isArray(raw?.meetings) ? raw.meetings : [],
+      chatMessages: Array.isArray(raw?.chatMessages) ? raw.chatMessages : [],
     };
   }
 
@@ -37,8 +37,7 @@ export class LocalStorageAdapter implements IStorageAdapter {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
-        // Cargar datos demo en la primera apertura para que la UI sea evaluable de inmediato
-        const initialData = getInitialDemoData();
+        const initialData = getEmptyDataState();
         this.saveToStorage(initialData);
         this.cachedState = initialData;
       } else {
@@ -46,8 +45,8 @@ export class LocalStorageAdapter implements IStorageAdapter {
         this.cachedState = this.normalizeState(parsed);
       }
     } catch (e) {
-      console.error('Error al inicializar LocalStorageAdapter, usando datos demo:', e);
-      this.cachedState = getInitialDemoData();
+      console.error('Error al inicializar LocalStorageAdapter:', e);
+      this.cachedState = getEmptyDataState();
     }
   }
 

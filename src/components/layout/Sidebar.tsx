@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Target,
   LayoutDashboard,
   GitFork,
   ClipboardList,
@@ -42,6 +43,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     badge?: number;
     badgeColor?: string;
   }[] = [
+    {
+      id: 'cockpit',
+      label: 'Mi Día & Cockpit',
+      icon: <Target size={18} />,
+      badge: pendingCount > 0 ? pendingCount : undefined,
+      badgeColor: '#2563eb',
+    },
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
     { id: 'responsibilities', label: 'Responsabilidades', icon: <GitFork size={18} /> },
     {
@@ -91,10 +99,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <ProcessFlowLogo size={36} />
         </div>
         <div>
-          <div className="sidebar-title" style={{ letterSpacing: '0.02em', fontSize: '15px' }}>
-            CONTROL GESTIÓN
+          <div className="sidebar-title" style={{ letterSpacing: '0.02em', fontSize: '14px', lineHeight: 1.2 }}>
+            GESTIÓN DE INFORMACIÓN
           </div>
-          <div className="sidebar-subtitle">Área Informática Operacional</div>
+          <div className="sidebar-subtitle">Informática Operacional</div>
         </div>
       </div>
 

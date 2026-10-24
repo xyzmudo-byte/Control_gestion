@@ -46,8 +46,10 @@ export const Header: React.FC<HeaderProps> = ({
         return 'Chat Interno y Canales Operacionales';
       case 'export':
         return 'Exportación de Datos (CSV / ZIP)';
+      case 'cockpit':
+        return 'Mi Día & Cockpit de Gestión';
       default:
-        return 'CONTROL GESTIÓN';
+        return 'GESTIÓN DE INFORMACIÓN';
     }
   };
 

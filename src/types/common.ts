@@ -40,6 +40,7 @@ export interface DashboardMetrics {
 }
 
 export type ActiveTab = 
+  | 'cockpit'
   | 'dashboard'
   | 'responsibilities'
   | 'deliverables'

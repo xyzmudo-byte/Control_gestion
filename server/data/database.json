@@ -1,0 +1,240 @@
+{
+  "users": [
+    {
+      "id": "usr-jherson",
+      "area": "Área Informática Operacional",
+      "name": "Jherson",
+      "role": "ADMIN",
+      "email": "jherson@empresa.com",
+      "password": "GRANlagarto123",
+      "username": "jherson",
+      "roleTitle": "Administrador Maestro",
+      "avatarColor": "#3b82f6"
+    },
+    {
+      "id": "usr-ludwin",
+      "area": "Área Informática Operacional",
+      "name": "Ludwin",
+      "role": "ADMIN",
+      "email": "ludwin@empresa.com",
+      "password": "123456",
+      "username": "ludwin",
+      "roleTitle": "Analista",
+      "avatarColor": "#10b981"
+    },
+    {
+      "id": "usr-katha",
+      "area": "Operaciones",
+      "name": "Katha",
+      "role": "PARTICIPANT",
+      "email": "katha@empresa.com",
+      "password": "Chauca2026",
+      "username": "katha",
+      "roleTitle": "Auxiliar",
+      "avatarColor": "#ec4899"
+    },
+    {
+      "id": "usr-kathy",
+      "area": "Operaciones",
+      "name": "Kathy",
+      "role": "PARTICIPANT",
+      "email": "kathy@empresa.com",
+      "password": "123456",
+      "username": "kathy",
+      "roleTitle": "Asistente",
+      "avatarColor": "#8b5cf6"
+    },
+    {
+      "id": "usr-edgar",
+      "area": "Supervisión",
+      "name": "Edgar",
+      "role": "VIEWER",
+      "email": "edgar@empresa.com",
+      "password": "123456",
+      "username": "edgar",
+      "roleTitle": "Observador (Solo Lectura)",
+      "avatarColor": "#f59e0b"
+    },
+    {
+      "id": "usr-lorena",
+      "area": "Supervisión",
+      "name": "Lorena",
+      "role": "VIEWER",
+      "email": "lorena@empresa.com",
+      "password": "123456",
+      "username": "lorena",
+      "roleTitle": "Observadora (Solo Lectura)",
+      "avatarColor": "#06b6d4"
+    }
+  ],
+  "currentUserId": "usr-jherson",
+  "processes": [],
+  "responsibilities": [],
+  "occurrences": [],
+  "deliverables": [
+    {
+      "id": "deliv-1789680078849-w6uf",
+      "name": "Informe EMT",
+      "type": "RECURRENTE",
+      "isDemo": false,
+      "status": "PENDING",
+      "dueTime": "17:00",
+      "hasIssue": false,
+      "priority": "HIGH",
+      "progress": 0,
+      "createdAt": "2026-09-17T21:21:18.849Z",
+      "needsHelp": false,
+      "updatedAt": "2026-09-17T21:21:18.849Z",
+      "evaluation": {
+        "result": "NOT_EVALUATED",
+        "comments": "",
+        "delayDays": 9,
+        "evaluationDate": "2026-10-21"
+      },
+      "description": "Elaborar informe EMT revisado ya ctualzaido con todos los indicadores.\n",
+      "isRecurring": true,
+      "recurrenceDay": "Segunda semana de cada mes",
+      "scheduledDate": "2026-10-13",
+      "responsiblePerson": "Jherson",
+      "recurrenceFrequency": "MENSUAL"
+    }
+  ],
+  "deliverableUpdates": [
+    {
+      "id": "upd-1789079730802-9l5k",
+      "date": "2026-09-10",
+      "time": "17:35",
+      "status": "PENDING",
+      "comment": "tENRMIEN EL PRIMER GAR",
+      "hasIssue": false,
+      "progress": 23,
+      "createdAt": "2026-09-10T22:35:30.802Z",
+      "needsHelp": false,
+      "deliverableId": "deliv-1789055958086-d3la"
+    },
+    {
+      "id": "upd-1789673816287-3oa4",
+      "date": "2026-09-17",
+      "time": "14:36",
+      "status": "PENDING",
+      "comment": "Se finalizó la fiscalizaicón interna",
+      "hasIssue": false,
+      "progress": 72,
+      "createdAt": "2026-09-17T19:36:56.287Z",
+      "needsHelp": false,
+      "deliverableId": "deliv-1789672333929-wr4q"
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-1789079798497-ayvg",
+      "name": "Nueva matriz de km",
+      "risk": "MEDIUM",
+      "isDemo": false,
+      "status": "IN_PROGRESS",
+      "priority": "URGENT",
+      "progress": 0,
+      "createdAt": "2026-09-10T22:36:38.497Z",
+      "objective": "Estandarizar el cáculo de kilómetros sin viajero.\nAumentar la precisión de cálculo sin vaijero.\n",
+      "startDate": "2026-09-10",
+      "updatedAt": "2026-09-10T22:36:38.497Z",
+      "targetDate": "2026-10-10",
+      "description": "",
+      "responsible": "Kathy"
+    },
+    {
+      "id": "proj-1789079927147-oq9o",
+      "name": "fsdfsdf",
+      "risk": "LOW",
+      "isDemo": false,
+      "status": "IN_PROGRESS",
+      "priority": "HIGH",
+      "progress": 0,
+      "createdAt": "2026-09-10T22:38:47.147Z",
+      "objective": "sdfs",
+      "startDate": "2026-09-10",
+      "updatedAt": "2026-09-10T22:38:47.147Z",
+      "targetDate": "2026-10-10",
+      "description": "",
+      "responsible": "Jason"
+    }
+  ],
+  "projectMilestones": [
+    {
+      "id": "m-1789079838971-qzdw",
+      "title": "Revison de km exp8",
+      "completed": false,
+      "projectId": "proj-1789079798497-ayvg",
+      "targetDate": "2026-09-25"
+    }
+  ],
+  "projectTasks": [
+    {
+      "id": "task-1789079893112-2q01",
+      "title": "Posibildia de demzai ",
+      "status": "PENDING",
+      "dueDate": "2026-09-17",
+      "createdAt": "2026-09-10T22:38:13.112Z",
+      "projectId": "proj-1789079798497-ayvg",
+      "assignedTo": "Jherson",
+      "description": "asd"
+    }
+  ],
+  "projectPhases": [],
+  "ideas": [
+    {
+      "id": "idea-1789079972035-c9ju",
+      "date": "2026-09-10",
+      "title": "Nueva estructura de proyectos",
+      "isDemo": false,
+      "status": "IDEA",
+      "creator": "Jherson",
+      "category": "Mejora Continua",
+      "createdAt": "2026-09-10T22:39:32.035Z",
+      "updatedAt": "2026-09-10T22:39:32.035Z",
+      "description": "Evolucionar de proyectos orientados principalmente al reporte y control operativo hacia proyectos de analítica y optimización que generen impacto económico medible.\n\nEn transporte, mejorar la rentabilidad por el lado de los ingresos es complejo, porque la demanda y el uso de las rutas están fuertemente condicionados por factores demográficos, económicos, geográficos y de movilidad urbana. Por ello, aunque la optimización de rutas puede contribuir a captar más usuarios, sus resultados dependen de variables que no siempre están bajo control directo de la organización.\n\nEn cambio, existe un campo de acción más directo en la optimización de costos y recursos, mediante el uso de datos para mejorar la planificación y toma de decisiones.\n",
+      "commentsList": [
+        {
+          "id": "cmt-1789672386596",
+          "text": "¿Algun proyecto terminado se puede medir económicamente?",
+          "author": "Jherson",
+          "createdAt": "2026-09-17T19:13:06.596Z"
+        }
+      ]
+    }
+  ],
+  "logbook": [],
+  "meetings": [
+    {
+      "id": "meet-1790979678959-ux5d",
+      "date": "2026-10-02",
+      "type": "FISICA",
+      "title": "Reunión Semana IO - V",
+      "isDemo": false,
+      "endTime": "11:00",
+      "createdAt": "2026-10-02T22:21:18.959Z",
+      "startTime": "10:00",
+      "agreements": "",
+      "description": "Reunión  de planificación S40",
+      "participants": [
+        "Jherson",
+        "Ludwin",
+        "Kathy",
+        "Katha"
+      ],
+      "locationOrUrl": "https://teams.microsoft.com/..."
+    }
+  ],
+  "chatMessages": [
+    {
+      "id": "chat-1789080122904-krb7",
+      "read": true,
+      "isDemo": false,
+      "channel": "operaciones",
+      "message": "hola",
+      "senderId": "usr-jherson",
+      "timestamp": "2026-09-10T22:42:02.904Z",
+      "senderName": "Jherson"
+    }
+  ]
+}

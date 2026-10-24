@@ -14,10 +14,10 @@ export class ApiStorageAdapter implements IStorageAdapter {
   }
 
   private normalizeState(raw: any): AppDataState {
-    const demo = getInitialDemoData();
+    const empty = getEmptyDataState();
     return {
-      users: Array.isArray(raw?.users) && raw.users.length > 0 ? raw.users : demo.users,
-      currentUserId: raw?.currentUserId || demo.currentUserId,
+      users: Array.isArray(raw?.users) && raw.users.length > 0 ? raw.users : empty.users,
+      currentUserId: raw?.currentUserId || 'usr-jherson',
       processes: Array.isArray(raw?.processes) ? raw.processes : [],
       responsibilities: Array.isArray(raw?.responsibilities) ? raw.responsibilities : [],
       occurrences: Array.isArray(raw?.occurrences) ? raw.occurrences : [],
@@ -40,19 +40,7 @@ export class ApiStorageAdapter implements IStorageAdapter {
       if (res.ok) {
         const data = await res.json();
         this.isOnlineBackend = true;
-        // Si el backend viene completamente vacío, cargar demo inicial para evaluación inmediata
-        const isCompletelyEmpty = 
-          (!data.deliverables || data.deliverables.length === 0) &&
-          (!data.projects || data.projects.length === 0) &&
-          (!data.responsibilities || data.responsibilities.length === 0);
-
-        if (isCompletelyEmpty) {
-          const initial = getInitialDemoData();
-          await this.saveState(initial);
-          this.cachedState = initial;
-        } else {
-          this.cachedState = this.normalizeState(data);
-        }
+        this.cachedState = this.normalizeState(data);
         this.notifyListeners(this.cachedState);
         return;
       }
@@ -66,10 +54,10 @@ export class ApiStorageAdapter implements IStorageAdapter {
       if (fallback) {
         this.cachedState = this.normalizeState(JSON.parse(fallback));
       } else {
-        this.cachedState = getInitialDemoData();
+        this.cachedState = getEmptyDataState();
       }
     } catch {
-      this.cachedState = getInitialDemoData();
+      this.cachedState = getEmptyDataState();
     }
     this.notifyListeners(this.cachedState);
   }
@@ -79,7 +67,7 @@ export class ApiStorageAdapter implements IStorageAdapter {
       return this.cachedState;
     }
     await this.init();
-    return this.cachedState || getInitialDemoData();
+    return this.cachedState || getEmptyDataState();
   }
 
   public async saveState(state: AppDataState): Promise<void> {

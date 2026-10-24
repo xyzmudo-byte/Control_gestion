@@ -5,6 +5,7 @@ import { Deliverable, UserProfile } from './types/models';
 import { calculateDashboardMetrics } from './services/metricsService';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { CockpitView } from './components/cockpit/CockpitView';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { ResponsibilitiesView } from './components/responsibilities/ResponsibilitiesView';
 import { DeliverablesView } from './components/deliverables/DeliverablesView';
@@ -117,7 +118,7 @@ export const App: React.FC = () => {
   };
   // ─────────────────────────────────────────────────────────────────────────
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('cockpit');
   const [selectedDeliverable, setSelectedDeliverable] = useState<Deliverable | null>(null);
   const [isCalendarDockCollapsed, setIsCalendarDockCollapsed] = useState<boolean>(() => {
     try {
@@ -273,6 +274,18 @@ export const App: React.FC = () => {
                 </button>
               </div>
             </div>
+          )}
+
+          {/* Mi Día & Cockpit Ejecutivo */}
+          {activeTab === 'cockpit' && (
+            <CockpitView
+              state={state}
+              currentUser={currentUser}
+              onUpdateDeliverable={updateDeliverable}
+              onAddDeliverable={addDeliverable}
+              onNavigateTab={setActiveTab}
+              onSelectDeliverable={handleOpenDeliverableFromAnywhere}
+            />
           )}
 
           {/* Dashboard */}
