@@ -191,12 +191,6 @@ export const App: React.FC = () => {
   const metrics = calculateDashboardMetrics(state);
   const currentUser = getCurrentUser();
 
-  const hasDemoData =
-    state.responsibilities.some((r) => r.isDemo) ||
-    state.deliverables.some((d) => d.isDemo) ||
-    state.projects.some((p) => p.isDemo) ||
-    state.ideas.some((i) => i.isDemo);
-
   // Contadores para badges del Sidebar
   const logbookPendingCount = state.logbook
     ? state.logbook.filter((l) => l.status === 'PENDING' && l.userId === currentUser.id).length
@@ -245,9 +239,6 @@ export const App: React.FC = () => {
       <div className="main-wrapper">
         <Header
           activeTab={activeTab}
-          hasDemoData={hasDemoData}
-          onLoadDemo={loadDemoData}
-          onClearDemo={clearDemoData}
           users={state.users || []}
           currentUser={currentUser}
           onSwitchUser={setCurrentUserId}
@@ -258,23 +249,6 @@ export const App: React.FC = () => {
 
         <div className="app-body-layout">
           <main className="content-area">
-          {/* Banner de datos demo */}
-          {hasDemoData && (
-            <div className="demo-banner">
-              <div>
-                💡 <strong>Modo Demo Activo:</strong> Estás visualizando datos de ejemplo para explorar la interfaz y métricas.
-              </div>
-              <div className="demo-banner-actions">
-                <button
-                  className="btn btn-secondary btn-sm"
-                  style={{ color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.4)' }}
-                  onClick={clearDemoData}
-                >
-                  Limpiar y empezar con datos propios
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Mi Día & Cockpit Ejecutivo */}
           {activeTab === 'cockpit' && (

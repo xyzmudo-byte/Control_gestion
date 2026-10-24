@@ -9,10 +9,6 @@ interface HeaderProps {
   onLogout: () => void;
   theme?: 'dark' | 'light';
   onToggleTheme?: () => void;
-  // Props opcionales (para compatibilidad con App.tsx)
-  hasDemoData?: boolean;
-  onLoadDemo?: () => void;
-  onClearDemo?: () => void;
   users?: UserProfile[];
   onSwitchUser?: (id: string) => void;
 }

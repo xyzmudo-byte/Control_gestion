@@ -18,23 +18,33 @@ export class ApiStorageAdapter implements IStorageAdapter {
     return {
       users: Array.isArray(raw?.users) && raw.users.length > 0 ? raw.users : empty.users,
       currentUserId: raw?.currentUserId || 'usr-jherson',
-      processes: Array.isArray(raw?.processes) ? raw.processes : [],
-      responsibilities: Array.isArray(raw?.responsibilities) ? raw.responsibilities : [],
-      occurrences: Array.isArray(raw?.occurrences) ? raw.occurrences : [],
-      deliverables: Array.isArray(raw?.deliverables) ? raw.deliverables : [],
+      processes: (Array.isArray(raw?.processes) ? raw.processes : []).filter((i: any) => !i.isDemo),
+      responsibilities: (Array.isArray(raw?.responsibilities) ? raw.responsibilities : []).filter((i: any) => !i.isDemo),
+      occurrences: (Array.isArray(raw?.occurrences) ? raw.occurrences : []).filter((i: any) => !i.isDemo),
+      deliverables: (Array.isArray(raw?.deliverables) ? raw.deliverables : []).filter((i: any) => !i.isDemo),
       deliverableUpdates: Array.isArray(raw?.deliverableUpdates) ? raw.deliverableUpdates : [],
-      projects: Array.isArray(raw?.projects) ? raw.projects : [],
-      projectMilestones: Array.isArray(raw?.projectMilestones) ? raw.projectMilestones : [],
-      projectTasks: Array.isArray(raw?.projectTasks) ? raw.projectTasks : [],
-      projectPhases: Array.isArray(raw?.projectPhases) ? raw.projectPhases : [],
-      ideas: Array.isArray(raw?.ideas) ? raw.ideas : [],
-      logbook: Array.isArray(raw?.logbook) ? raw.logbook : [],
-      meetings: Array.isArray(raw?.meetings) ? raw.meetings : [],
-      chatMessages: Array.isArray(raw?.chatMessages) ? raw.chatMessages : [],
+      projects: (Array.isArray(raw?.projects) ? raw.projects : []).filter((i: any) => !i.isDemo),
+      projectMilestones: (Array.isArray(raw?.projectMilestones) ? raw.projectMilestones : []).filter((i: any) => !i.isDemo),
+      projectTasks: (Array.isArray(raw?.projectTasks) ? raw.projectTasks : []).filter((i: any) => !i.isDemo),
+      projectPhases: (Array.isArray(raw?.projectPhases) ? raw.projectPhases : []).filter((i: any) => !i.isDemo),
+      ideas: (Array.isArray(raw?.ideas) ? raw.ideas : []).filter((i: any) => !i.isDemo),
+      logbook: (Array.isArray(raw?.logbook) ? raw.logbook : []).filter((i: any) => !i.isDemo),
+      meetings: (Array.isArray(raw?.meetings) ? raw.meetings : []).filter((i: any) => !i.isDemo),
+      chatMessages: (Array.isArray(raw?.chatMessages) ? raw.chatMessages : []).filter((i: any) => !i.isDemo),
     };
   }
 
   private async init(): Promise<void> {
+    // Purgar de inmediato cualquier almacenamiento local antiguo que contenga banderas isDemo
+    try {
+      [LOCAL_FALLBACK_KEY, 'CONTROL_GESTION_DATA_V1'].forEach((key) => {
+        const item = localStorage.getItem(key);
+        if (item && item.includes('"isDemo":true')) {
+          localStorage.removeItem(key);
+        }
+      });
+    } catch {}
+
     try {
       const res = await fetch('/api/state');
       if (res.ok) {
