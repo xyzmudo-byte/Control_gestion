@@ -12,7 +12,7 @@ export const defaultUsers: UserProfile[] = [
     avatarColor: '#3b82f6',
   },
   {
-    id: 'usr-ludwin',
+    id: 'usr-ludwing',
     name: 'Ludwing',
     username: 'ludwing',
     email: 'ludwing@empresa.com',
@@ -22,7 +22,7 @@ export const defaultUsers: UserProfile[] = [
     avatarColor: '#10b981',
   },
   {
-    id: 'usr-katha',
+    id: 'usr-lucero',
     name: 'Lucero',
     username: 'lucero',
     email: 'lucero@empresa.com',

@@ -1,5 +1,5 @@
 import { AppDataState } from '../types/models';
-import { getEmptyDataState, getInitialDemoData } from './demoData';
+import { defaultUsers, getEmptyDataState, getInitialDemoData } from './demoData';
 import { IStorageAdapter } from './storageInterface';
 
 const LOCAL_FALLBACK_KEY = 'CONTROL_GESTION_BACKUP_STATE';
@@ -16,7 +16,22 @@ export class ApiStorageAdapter implements IStorageAdapter {
   private normalizeState(raw: any): AppDataState {
     const empty = getEmptyDataState();
     return {
-      users: Array.isArray(raw?.users) && raw.users.length > 0 ? raw.users : empty.users,
+      users: defaultUsers.map((def) => {
+        const found = Array.isArray(raw?.users)
+          ? raw.users.find(
+              (u: any) =>
+                u.id === def.id ||
+                (def.id === 'usr-lucero' && (u.id === 'usr-katha' || u.name?.toLowerCase() === 'katha')) ||
+                (def.id === 'usr-ludwing' && (u.id === 'usr-ludwin' || u.name?.toLowerCase() === 'ludwin')) ||
+                (u.username && def.username && u.username.toLowerCase() === def.username.toLowerCase()) ||
+                (u.name && def.name && u.name.toLowerCase() === def.name.toLowerCase())
+            )
+          : null;
+        return {
+          ...(found || {}),
+          ...def, // Lucero y Ludwing prevalecen siempre sobre cualquier cache
+        };
+      }),
       currentUserId: raw?.currentUserId || 'usr-jherson',
       processes: (Array.isArray(raw?.processes) ? raw.processes : []).filter((i: any) => !i.isDemo),
       responsibilities: (Array.isArray(raw?.responsibilities) ? raw.responsibilities : []).filter((i: any) => !i.isDemo),

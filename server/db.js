@@ -25,7 +25,7 @@ const defaultUsers = [
     avatarColor: '#3b82f6',
   },
   {
-    id: 'usr-ludwin',
+    id: 'usr-ludwing',
     name: 'Ludwing',
     username: 'ludwing',
     email: 'ludwing@empresa.com',
@@ -36,7 +36,7 @@ const defaultUsers = [
     avatarColor: '#10b981',
   },
   {
-    id: 'usr-katha',
+    id: 'usr-lucero',
     name: 'Lucero',
     username: 'lucero',
     email: 'lucero@empresa.com',
@@ -234,14 +234,16 @@ class DatabaseManager {
           ? raw.users.find(
               (u) =>
                 u.id === def.id ||
+                (def.id === 'usr-lucero' && (u.id === 'usr-katha' || u.name?.toLowerCase() === 'katha')) ||
+                (def.id === 'usr-ludwing' && (u.id === 'usr-ludwin' || u.name?.toLowerCase() === 'ludwin')) ||
                 (u.username && u.username.toLowerCase() === def.username.toLowerCase()) ||
                 (u.name && u.name.toLowerCase() === def.name.toLowerCase())
             )
           : null;
         return {
-          ...def,
           ...(found || {}),
-          password: (found && found.password) || def.password,
+          ...def, // def prevalece siempre sobre cualquier dato antiguo
+          password: def.password,
         };
       }),
       currentUserId: raw?.currentUserId || empty.currentUserId,
@@ -354,8 +356,8 @@ class DatabaseManager {
       const matchUsername = String(u.username || '').trim().toLowerCase() === query;
       const matchEmail = String(u.email || '').trim().toLowerCase() === query;
       const matchAlias =
-        (query === 'katha' && u.id === 'usr-katha') ||
-        (query === 'ludwin' && u.id === 'usr-ludwin');
+        (query === 'katha' && (u.id === 'usr-lucero' || u.id === 'usr-katha' || u.name.toLowerCase() === 'lucero')) ||
+        (query === 'ludwin' && (u.id === 'usr-ludwing' || u.id === 'usr-ludwin' || u.name.toLowerCase() === 'ludwing'));
       return matchName || matchUsername || matchEmail || matchAlias;
     });
 
@@ -365,6 +367,10 @@ class DatabaseManager {
     const defaultMatch = defaultUsers.find(
       (d) =>
         d.id === user.id ||
+        (user.id === 'usr-lucero' && d.id === 'usr-lucero') ||
+        (user.id === 'usr-katha' && d.id === 'usr-lucero') ||
+        (user.id === 'usr-ludwing' && d.id === 'usr-ludwing') ||
+        (user.id === 'usr-ludwin' && d.id === 'usr-ludwing') ||
         d.username.toLowerCase() === String(user.username || '').toLowerCase() ||
         d.name.toLowerCase() === String(user.name || '').toLowerCase()
     );
