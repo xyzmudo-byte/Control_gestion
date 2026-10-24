@@ -99,7 +99,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, users }) =
               <input
                 type="text"
                 className="login-input"
-                placeholder="Ej. Jherson, Ludwin..."
+                placeholder="Ej. Jherson, Ludwing..."
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoFocus

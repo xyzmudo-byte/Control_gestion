@@ -2,68 +2,68 @@
   "users": [
     {
       "id": "usr-jherson",
-      "area": "Área Informática Operacional",
       "name": "Jherson",
-      "role": "ADMIN",
+      "username": "jherson",
       "email": "jherson@empresa.com",
       "password": "GRANlagarto123",
-      "username": "jherson",
+      "role": "ADMIN",
       "roleTitle": "Administrador Maestro",
+      "area": "Área Informática Operacional",
       "avatarColor": "#3b82f6"
     },
     {
       "id": "usr-ludwin",
-      "area": "Área Informática Operacional",
-      "name": "Ludwin",
-      "role": "ADMIN",
-      "email": "ludwin@empresa.com",
+      "name": "Ludwing",
+      "username": "ludwing",
+      "email": "ludwing@empresa.com",
       "password": "123456",
-      "username": "ludwin",
+      "role": "ADMIN",
       "roleTitle": "Analista",
+      "area": "Área Informática Operacional",
       "avatarColor": "#10b981"
     },
     {
       "id": "usr-katha",
-      "area": "Operaciones",
-      "name": "Katha",
-      "role": "PARTICIPANT",
-      "email": "katha@empresa.com",
+      "name": "Lucero",
+      "username": "lucero",
+      "email": "lucero@empresa.com",
       "password": "Chauca2026",
-      "username": "katha",
+      "role": "PARTICIPANT",
       "roleTitle": "Auxiliar",
+      "area": "Operaciones",
       "avatarColor": "#ec4899"
     },
     {
       "id": "usr-kathy",
-      "area": "Operaciones",
       "name": "Kathy",
-      "role": "PARTICIPANT",
+      "username": "kathy",
       "email": "kathy@empresa.com",
       "password": "123456",
-      "username": "kathy",
+      "role": "PARTICIPANT",
       "roleTitle": "Asistente",
+      "area": "Operaciones",
       "avatarColor": "#8b5cf6"
     },
     {
       "id": "usr-edgar",
-      "area": "Supervisión",
       "name": "Edgar",
-      "role": "VIEWER",
+      "username": "edgar",
       "email": "edgar@empresa.com",
       "password": "123456",
-      "username": "edgar",
+      "role": "VIEWER",
       "roleTitle": "Observador (Solo Lectura)",
+      "area": "Supervisión",
       "avatarColor": "#f59e0b"
     },
     {
       "id": "usr-lorena",
-      "area": "Supervisión",
       "name": "Lorena",
-      "role": "VIEWER",
+      "username": "lorena",
       "email": "lorena@empresa.com",
       "password": "123456",
-      "username": "lorena",
+      "role": "VIEWER",
       "roleTitle": "Observadora (Solo Lectura)",
+      "area": "Supervisión",
       "avatarColor": "#06b6d4"
     }
   ],
@@ -218,9 +218,9 @@
       "description": "Reunión  de planificación S40",
       "participants": [
         "Jherson",
-        "Ludwin",
+        "Ludwing",
         "Kathy",
-        "Katha"
+        "Lucero"
       ],
       "locationOrUrl": "https://teams.microsoft.com/..."
     }

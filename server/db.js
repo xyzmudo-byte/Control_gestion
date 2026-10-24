@@ -26,9 +26,9 @@ const defaultUsers = [
   },
   {
     id: 'usr-ludwin',
-    name: 'Ludwin',
-    username: 'ludwin',
-    email: 'ludwin@empresa.com',
+    name: 'Ludwing',
+    username: 'ludwing',
+    email: 'ludwing@empresa.com',
     password: '123456',
     role: 'ADMIN',
     roleTitle: 'Analista',
@@ -37,9 +37,9 @@ const defaultUsers = [
   },
   {
     id: 'usr-katha',
-    name: 'Katha',
-    username: 'katha',
-    email: 'katha@empresa.com',
+    name: 'Lucero',
+    username: 'lucero',
+    email: 'lucero@empresa.com',
     password: 'Chauca2026',
     role: 'PARTICIPANT',
     roleTitle: 'Auxiliar',
@@ -353,7 +353,10 @@ class DatabaseManager {
       const matchName = String(u.name || '').trim().toLowerCase() === query;
       const matchUsername = String(u.username || '').trim().toLowerCase() === query;
       const matchEmail = String(u.email || '').trim().toLowerCase() === query;
-      return matchName || matchUsername || matchEmail;
+      const matchAlias =
+        (query === 'katha' && u.id === 'usr-katha') ||
+        (query === 'ludwin' && u.id === 'usr-ludwin');
+      return matchName || matchUsername || matchEmail || matchAlias;
     });
 
     if (!user) return null;
