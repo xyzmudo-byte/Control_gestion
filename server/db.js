@@ -229,7 +229,21 @@ class DatabaseManager {
   normalizeState(raw) {
     const empty = getEmptyState();
     return {
-      users: Array.isArray(raw?.users) && raw.users.length > 0 ? raw.users : empty.users,
+      users: defaultUsers.map((def) => {
+        const found = Array.isArray(raw?.users)
+          ? raw.users.find(
+              (u) =>
+                u.id === def.id ||
+                (u.username && u.username.toLowerCase() === def.username.toLowerCase()) ||
+                (u.name && u.name.toLowerCase() === def.name.toLowerCase())
+            )
+          : null;
+        return {
+          ...def,
+          ...(found || {}),
+          password: (found && found.password) || def.password,
+        };
+      }),
       currentUserId: raw?.currentUserId || empty.currentUserId,
       processes: Array.isArray(raw?.processes) ? raw.processes : [],
       responsibilities: Array.isArray(raw?.responsibilities) ? raw.responsibilities : [],
@@ -333,15 +347,29 @@ class DatabaseManager {
   authenticateUser(usernameOrEmail, password) {
     const state = this.getState();
     const query = String(usernameOrEmail || '').trim().toLowerCase();
-    const user = state.users.find((u) => {
-      const matchName = u.name.toLowerCase() === query;
-      const matchUsername = (u.username || '').toLowerCase() === query;
-      const matchEmail = (u.email || '').toLowerCase() === query;
+    const cleanPassword = String(password || '').trim();
+
+    const user = (state.users || defaultUsers).find((u) => {
+      const matchName = String(u.name || '').trim().toLowerCase() === query;
+      const matchUsername = String(u.username || '').trim().toLowerCase() === query;
+      const matchEmail = String(u.email || '').trim().toLowerCase() === query;
       return matchName || matchUsername || matchEmail;
     });
 
     if (!user) return null;
-    if (user.password !== password) return null;
+
+    // Obtener la contraseña esperada (priorizar user.password, con respaldo obligatorio en defaultUsers)
+    const defaultMatch = defaultUsers.find(
+      (d) =>
+        d.id === user.id ||
+        d.username.toLowerCase() === String(user.username || '').toLowerCase() ||
+        d.name.toLowerCase() === String(user.name || '').toLowerCase()
+    );
+    const expectedPassword = String(user.password || defaultMatch?.password || '').trim();
+
+    if (!expectedPassword || expectedPassword !== cleanPassword) {
+      return null;
+    }
 
     const { password: _, ...safeUser } = user;
     return safeUser;
