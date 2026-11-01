@@ -15,6 +15,8 @@ import {
   ProjectTask,
   Responsibility,
   ResponsibilityOccurrence,
+  TimeCategory,
+  TimeEntry,
   UserProfile,
 } from '../types/models';
 
@@ -419,7 +421,97 @@ export const useAppData = () => {
     return newLogItem;
   };
 
-  // 9. GESTIÓN DE DEMO Y RESETEO
+  // 9. TIME TRACKER
+  const startTimeEntry = async (
+    activity: string,
+    category: TimeCategory = 'OPERATIONS',
+    deliverableId?: string,
+    projectId?: string
+  ) => {
+    if (!state) return;
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const user = getCurrentUser();
+
+    // Detener cualquier entrada activa previa del mismo usuario
+    const entries = state.timeEntries || [];
+    const updatedEntries = entries.map((e) => {
+      if (e.userId === user.id && e.isRunning) {
+        return {
+          ...e,
+          isRunning: false,
+          endTime: e.endTime || timeStr,
+          updatedAt: now.toISOString(),
+        };
+      }
+      return e;
+    });
+
+    const newEntry: TimeEntry = {
+      id: `time-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      userId: user.id,
+      date: dateStr,
+      startTime: timeStr,
+      endTime: undefined,
+      activity: activity.trim(),
+      category,
+      deliverableId,
+      projectId,
+      isRunning: true,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+
+    updatedEntries.push(newEntry);
+    await storageAdapter.saveState({
+      ...state,
+      timeEntries: updatedEntries,
+    });
+    return newEntry;
+  };
+
+  const stopTimeEntry = async (id: string) => {
+    if (!state) return;
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const entries = state.timeEntries || [];
+    const updatedEntries = entries.map((e) => {
+      if (e.id === id) {
+        return {
+          ...e,
+          isRunning: false,
+          endTime: e.endTime || timeStr,
+          updatedAt: now.toISOString(),
+        };
+      }
+      return e;
+    });
+    await storageAdapter.saveState({
+      ...state,
+      timeEntries: updatedEntries,
+    });
+  };
+
+  const addManualTimeEntry = async (item: Omit<TimeEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newItem: TimeEntry = {
+      ...item,
+      id: `time-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    return storageAdapter.create('timeEntries', newItem);
+  };
+
+  const updateTimeEntry = async (id: string, updates: Partial<TimeEntry>) => {
+    return storageAdapter.update('timeEntries', id, updates);
+  };
+
+  const deleteTimeEntry = async (id: string) => {
+    return storageAdapter.delete('timeEntries', id);
+  };
+
+  // 10. GESTIÓN DE RESETEO
   const loadDemoData = async () => {
     return storageAdapter.loadDemoData();
   };
@@ -485,6 +577,12 @@ export const useAppData = () => {
     // Chat
     sendChatMessage,
     convertChatMessageToLogbook,
+    // Time Tracker
+    startTimeEntry,
+    stopTimeEntry,
+    addManualTimeEntry,
+    updateTimeEntry,
+    deleteTimeEntry,
     // Demo & reset
     loadDemoData,
     clearDemoData,

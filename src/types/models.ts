@@ -290,6 +290,24 @@ export interface ChatMessage {
   isDemo?: boolean;
 }
 
+// 9. TIME TRACKER / CONTROL DE TIEMPOS
+export type TimeCategory = 'OPERATIONS' | 'PROJECTS' | 'MEETINGS' | 'SUPPORT' | 'ADMIN' | 'OTHER';
+
+export interface TimeEntry {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:mm
+  endTime?: string; // HH:mm (vacío si está en curso)
+  activity: string;
+  category: TimeCategory;
+  deliverableId?: string;
+  projectId?: string;
+  isRunning: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 // ESTADO GLOBAL DE LA APLICACIÓN
 export interface AppDataState {
   users: UserProfile[];
@@ -307,5 +325,6 @@ export interface AppDataState {
   logbook: LogbookItem[];
   meetings: Meeting[];
   chatMessages: ChatMessage[];
+  timeEntries: TimeEntry[];
 }
 

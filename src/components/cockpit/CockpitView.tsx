@@ -426,8 +426,8 @@ export const CockpitView: React.FC<CockpitViewProps> = ({
                       border: isCompleted
                         ? '1px solid rgba(16, 185, 129, 0.3)'
                         : isOverdue
-                        ? '1px solid rgba(239, 68, 68, 0.4)'
-                        : '1px solid var(--border-color)',
+                          ? '1px solid rgba(239, 68, 68, 0.4)'
+                          : '1px solid var(--border-color)',
                       borderRadius: 'var(--radius-md)',
                       padding: '14px',
                       display: 'flex',
@@ -548,8 +548,8 @@ export const CockpitView: React.FC<CockpitViewProps> = ({
                           backgroundColor: isCompleted
                             ? 'rgba(16, 185, 129, 0.12)'
                             : isOverdue
-                            ? 'rgba(239, 68, 68, 0.12)'
-                            : 'rgba(37, 99, 235, 0.12)',
+                              ? 'rgba(239, 68, 68, 0.12)'
+                              : 'rgba(37, 99, 235, 0.12)',
                           color: isCompleted ? '#10b981' : isOverdue ? '#ef4444' : '#60a5fa',
                         }}
                       >

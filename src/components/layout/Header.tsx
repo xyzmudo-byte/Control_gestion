@@ -40,6 +40,8 @@ export const Header: React.FC<HeaderProps> = ({
         return 'Gestión de Reuniones y Acuerdos';
       case 'chat':
         return 'Chat Interno y Canales Operacionales';
+      case 'timetracker':
+        return 'Control de Horarios y Actividades en Vivo (Time Tracker)';
       case 'export':
         return 'Exportación de Datos (CSV / ZIP)';
       case 'cockpit':

@@ -1,5 +1,5 @@
 import { AppDataState } from '../types/models';
-import { defaultUsers, getEmptyDataState, getInitialDemoData } from './demoData';
+import { defaultUsers, getEmptyDataState } from './defaultState';
 import { IStorageAdapter } from './storageInterface';
 
 const STORAGE_KEY = 'CONTROL_GESTION_DATA_V1';
@@ -18,13 +18,13 @@ export class LocalStorageAdapter implements IStorageAdapter {
       users: defaultUsers.map((def) => {
         const found = Array.isArray(raw?.users)
           ? raw.users.find(
-              (u: any) =>
-                u.id === def.id ||
-                (def.id === 'usr-lucero' && (u.id === 'usr-katha' || u.name?.toLowerCase() === 'katha')) ||
-                (def.id === 'usr-ludwing' && (u.id === 'usr-ludwin' || u.name?.toLowerCase() === 'ludwin')) ||
-                (u.username && def.username && u.username.toLowerCase() === def.username.toLowerCase()) ||
-                (u.name && def.name && u.name.toLowerCase() === def.name.toLowerCase())
-            )
+            (u: any) =>
+              u.id === def.id ||
+              (def.id === 'usr-lucero' && (u.id === 'usr-katha' || u.name?.toLowerCase() === 'katha')) ||
+              (def.id === 'usr-ludwing' && (u.id === 'usr-ludwin' || u.name?.toLowerCase() === 'ludwin')) ||
+              (u.username && def.username && u.username.toLowerCase() === def.username.toLowerCase()) ||
+              (u.name && def.name && u.name.toLowerCase() === def.name.toLowerCase())
+          )
           : null;
         return {
           ...(found || {}),
@@ -32,19 +32,20 @@ export class LocalStorageAdapter implements IStorageAdapter {
         };
       }),
       currentUserId: raw?.currentUserId || 'usr-jherson',
-      processes: (Array.isArray(raw?.processes) ? raw.processes : []).filter((i: any) => !i.isDemo),
-      responsibilities: (Array.isArray(raw?.responsibilities) ? raw.responsibilities : []).filter((i: any) => !i.isDemo),
-      occurrences: (Array.isArray(raw?.occurrences) ? raw.occurrences : []).filter((i: any) => !i.isDemo),
-      deliverables: (Array.isArray(raw?.deliverables) ? raw.deliverables : []).filter((i: any) => !i.isDemo),
+      processes: Array.isArray(raw?.processes) ? raw.processes : [],
+      responsibilities: Array.isArray(raw?.responsibilities) ? raw.responsibilities : [],
+      occurrences: Array.isArray(raw?.occurrences) ? raw.occurrences : [],
+      deliverables: Array.isArray(raw?.deliverables) ? raw.deliverables : [],
       deliverableUpdates: Array.isArray(raw?.deliverableUpdates) ? raw.deliverableUpdates : [],
-      projects: (Array.isArray(raw?.projects) ? raw.projects : []).filter((i: any) => !i.isDemo),
-      projectMilestones: (Array.isArray(raw?.projectMilestones) ? raw.projectMilestones : []).filter((i: any) => !i.isDemo),
-      projectTasks: (Array.isArray(raw?.projectTasks) ? raw.projectTasks : []).filter((i: any) => !i.isDemo),
-      projectPhases: (Array.isArray(raw?.projectPhases) ? raw.projectPhases : []).filter((i: any) => !i.isDemo),
-      ideas: (Array.isArray(raw?.ideas) ? raw.ideas : []).filter((i: any) => !i.isDemo),
-      logbook: (Array.isArray(raw?.logbook) ? raw.logbook : []).filter((i: any) => !i.isDemo),
-      meetings: (Array.isArray(raw?.meetings) ? raw.meetings : []).filter((i: any) => !i.isDemo),
-      chatMessages: (Array.isArray(raw?.chatMessages) ? raw.chatMessages : []).filter((i: any) => !i.isDemo),
+      projects: Array.isArray(raw?.projects) ? raw.projects : [],
+      projectMilestones: Array.isArray(raw?.projectMilestones) ? raw.projectMilestones : [],
+      projectTasks: Array.isArray(raw?.projectTasks) ? raw.projectTasks : [],
+      projectPhases: Array.isArray(raw?.projectPhases) ? raw.projectPhases : [],
+      ideas: Array.isArray(raw?.ideas) ? raw.ideas : [],
+      logbook: Array.isArray(raw?.logbook) ? raw.logbook : [],
+      meetings: Array.isArray(raw?.meetings) ? raw.meetings : [],
+      chatMessages: Array.isArray(raw?.chatMessages) ? raw.chatMessages : [],
+      timeEntries: Array.isArray(raw?.timeEntries) ? raw.timeEntries : [],
     };
   }
 
@@ -161,32 +162,15 @@ export class LocalStorageAdapter implements IStorageAdapter {
   }
 
   public async loadDemoData(): Promise<AppDataState> {
-    const demo = getInitialDemoData();
-    this.saveToStorage(demo);
-    return demo;
+    const empty = getEmptyDataState();
+    this.saveToStorage(empty);
+    return empty;
   }
 
   public async clearDemoData(): Promise<AppDataState> {
-    const state = await this.getState();
-    const cleanState: AppDataState = {
-      users: state.users,
-      currentUserId: state.currentUserId,
-      processes: state.processes.filter((i) => !i.isDemo),
-      responsibilities: state.responsibilities.filter((i) => !i.isDemo),
-      occurrences: state.occurrences.filter((i) => !i.isDemo),
-      deliverables: state.deliverables.filter((i) => !i.isDemo),
-      deliverableUpdates: state.deliverableUpdates,
-      projects: state.projects.filter((i) => !i.isDemo),
-      projectMilestones: state.projectMilestones.filter((i) => !i.isDemo),
-      projectTasks: state.projectTasks.filter((i) => !i.isDemo),
-      projectPhases: state.projectPhases.filter((i) => !i.isDemo),
-      ideas: state.ideas.filter((i) => !i.isDemo),
-      logbook: state.logbook.filter((i) => !i.isDemo),
-      meetings: state.meetings.filter((i) => !i.isDemo),
-      chatMessages: state.chatMessages.filter((i) => !i.isDemo),
-    };
-    this.saveToStorage(cleanState);
-    return cleanState;
+    const empty = getEmptyDataState();
+    this.saveToStorage(empty);
+    return empty;
   }
 
   public async resetAll(): Promise<AppDataState> {

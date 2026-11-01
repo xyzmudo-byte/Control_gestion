@@ -16,6 +16,7 @@ import { IdeasView } from './components/ideas/IdeasView';
 import { LogbookView } from './components/logbook/LogbookView';
 import { MeetingsView } from './components/meetings/MeetingsView';
 import { ChatView } from './components/chat/ChatView';
+import { TimeTrackerView } from './components/timetracker/TimeTrackerView';
 import { ExportView } from './components/export/ExportView';
 import { LoginView } from './components/auth/LoginView';
 import './styles/globals.css';
@@ -72,6 +73,12 @@ export const App: React.FC = () => {
     // Chat
     sendChatMessage,
     convertChatMessageToLogbook,
+    // Time Tracker
+    startTimeEntry,
+    stopTimeEntry,
+    addManualTimeEntry,
+    updateTimeEntry,
+    deleteTimeEntry,
     // Demo
     loadDemoData,
     clearDemoData,
@@ -369,6 +376,19 @@ export const App: React.FC = () => {
               currentUser={currentUser}
               onSendMessage={sendChatMessage}
               onConvertMessageToLogbook={convertChatMessageToLogbook}
+            />
+          )}
+
+          {/* Time Tracker & Horarios en Vivo */}
+          {activeTab === 'timetracker' && (
+            <TimeTrackerView
+              state={state}
+              currentUser={currentUser}
+              onStartTimeEntry={startTimeEntry}
+              onStopTimeEntry={stopTimeEntry}
+              onAddManualTimeEntry={addManualTimeEntry}
+              onUpdateTimeEntry={updateTimeEntry}
+              onDeleteTimeEntry={deleteTimeEntry}
             />
           )}
 

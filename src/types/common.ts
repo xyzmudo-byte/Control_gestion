@@ -50,4 +50,5 @@ export type ActiveTab =
   | 'logbook'
   | 'meetings'
   | 'chat'
+  | 'timetracker'
   | 'export';

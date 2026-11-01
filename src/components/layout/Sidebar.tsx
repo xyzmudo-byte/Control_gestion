@@ -10,6 +10,7 @@ import {
   BookmarkCheck,
   Users,
   MessageSquare,
+  Clock,
   Download,
 } from 'lucide-react';
 import { ActiveTab } from '../../types/common';
@@ -88,6 +89,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: <MessageSquare size={18} />,
       badge: unreadChatCount > 0 ? unreadChatCount : undefined,
       badgeColor: '#10b981',
+    },
+    {
+      id: 'timetracker',
+      label: 'Time Tracker',
+      icon: <Clock size={18} />,
     },
     { id: 'export', label: 'Exportar', icon: <Download size={18} /> },
   ];
