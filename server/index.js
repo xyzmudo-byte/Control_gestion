@@ -14,6 +14,7 @@ import logbookRoutes from './routes/logbookRoutes.js';
 import meetingsRoutes from './routes/meetingsRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import timeTrackerRoutes from './routes/timeTrackerRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,6 +55,7 @@ app.use('/api/logbook', logbookRoutes);
 app.use('/api/meetings', meetingsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/timetracker', timeTrackerRoutes);
 
 // Servir frontend compilado en producción si existe la carpeta 'dist'
 const distPath = path.join(__dirname, '..', 'dist');

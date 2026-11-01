@@ -97,6 +97,7 @@ const getEmptyState = () => ({
   logbook: [],
   meetings: [],
   chatMessages: [],
+  timeEntries: [],
 });
 
 class DatabaseManager {
@@ -260,6 +261,7 @@ class DatabaseManager {
       logbook: Array.isArray(raw?.logbook) ? raw.logbook : [],
       meetings: Array.isArray(raw?.meetings) ? raw.meetings : [],
       chatMessages: Array.isArray(raw?.chatMessages) ? raw.chatMessages : [],
+      timeEntries: Array.isArray(raw?.timeEntries) ? raw.timeEntries : [],
     };
   }
 
