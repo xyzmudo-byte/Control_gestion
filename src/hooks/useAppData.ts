@@ -441,6 +441,7 @@ export const useAppData = () => {
         return {
           ...e,
           isRunning: false,
+          isPaused: false,
           endTime: e.endTime || timeStr,
           updatedAt: now.toISOString(),
         };
@@ -459,6 +460,9 @@ export const useAppData = () => {
       deliverableId,
       projectId,
       isRunning: true,
+      isPaused: false,
+      accumulatedSeconds: 0,
+      lastStartedAt: now.toISOString(),
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     };
@@ -471,6 +475,51 @@ export const useAppData = () => {
     return newEntry;
   };
 
+  const pauseTimeEntry = async (id: string) => {
+    if (!state) return;
+    const now = new Date();
+    const entries = state.timeEntries || [];
+    const updatedEntries = entries.map((e) => {
+      if (e.id === id) {
+        const lastStarted = e.lastStartedAt ? new Date(e.lastStartedAt).getTime() : now.getTime();
+        const diffSeconds = Math.max(0, Math.floor((now.getTime() - lastStarted) / 1000));
+        const totalAccum = (e.accumulatedSeconds || 0) + diffSeconds;
+        return {
+          ...e,
+          isPaused: true,
+          accumulatedSeconds: totalAccum,
+          updatedAt: now.toISOString(),
+        };
+      }
+      return e;
+    });
+    await storageAdapter.saveState({
+      ...state,
+      timeEntries: updatedEntries,
+    });
+  };
+
+  const resumeTimeEntry = async (id: string) => {
+    if (!state) return;
+    const now = new Date();
+    const entries = state.timeEntries || [];
+    const updatedEntries = entries.map((e) => {
+      if (e.id === id) {
+        return {
+          ...e,
+          isPaused: false,
+          lastStartedAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+        };
+      }
+      return e;
+    });
+    await storageAdapter.saveState({
+      ...state,
+      timeEntries: updatedEntries,
+    });
+  };
+
   const stopTimeEntry = async (id: string) => {
     if (!state) return;
     const now = new Date();
@@ -478,9 +527,17 @@ export const useAppData = () => {
     const entries = state.timeEntries || [];
     const updatedEntries = entries.map((e) => {
       if (e.id === id) {
+        let totalAccum = e.accumulatedSeconds || 0;
+        if (!e.isPaused && e.lastStartedAt) {
+          const lastStarted = new Date(e.lastStartedAt).getTime();
+          const diffSeconds = Math.max(0, Math.floor((now.getTime() - lastStarted) / 1000));
+          totalAccum += diffSeconds;
+        }
         return {
           ...e,
           isRunning: false,
+          isPaused: false,
+          accumulatedSeconds: totalAccum,
           endTime: e.endTime || timeStr,
           updatedAt: now.toISOString(),
         };
@@ -579,6 +636,8 @@ export const useAppData = () => {
     convertChatMessageToLogbook,
     // Time Tracker
     startTimeEntry,
+    pauseTimeEntry,
+    resumeTimeEntry,
     stopTimeEntry,
     addManualTimeEntry,
     updateTimeEntry,

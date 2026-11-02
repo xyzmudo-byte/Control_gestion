@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Clock,
   Play,
+  Pause,
   Square,
   Plus,
   Users,
@@ -36,6 +37,8 @@ interface TimeTrackerViewProps {
     deliverableId?: string,
     projectId?: string
   ) => Promise<any>;
+  onPauseTimeEntry: (id: string) => Promise<any>;
+  onResumeTimeEntry: (id: string) => Promise<any>;
   onStopTimeEntry: (id: string) => Promise<any>;
   onAddManualTimeEntry: (
     entry: Omit<TimeEntry, 'id' | 'createdAt' | 'updatedAt'>
@@ -99,31 +102,44 @@ export const CATEGORY_CONFIG: Record<
   },
 };
 
-// Calcula duración en minutos a partir de startTime ("HH:mm") y endTime ("HH:mm")
-const calculateMinutes = (start?: string, end?: string): number => {
-  if (!start) return 0;
-  const [sh, sm] = start.split(':').map(Number);
-  let eh: number, em: number;
-
-  if (end) {
-    [eh, em] = end.split(':').map(Number);
-  } else {
-    const now = new Date();
-    eh = now.getHours();
-    em = now.getMinutes();
+// Calcula los segundos exactos acumulados para una entrada (activa, pausada o finalizada)
+const calculateEntryTotalSeconds = (entry: TimeEntry): number => {
+  let seconds = entry.accumulatedSeconds || 0;
+  if (entry.isRunning && !entry.isPaused && entry.lastStartedAt) {
+    const startMs = new Date(entry.lastStartedAt).getTime();
+    const elapsed = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+    seconds += elapsed;
+  } else if (!entry.accumulatedSeconds && entry.startTime) {
+    // Fallback de retrocompatibilidad si se registró solo startTime y endTime
+    const [sh, sm] = entry.startTime.split(':').map(Number);
+    let eh: number, em: number;
+    if (entry.endTime) {
+      [eh, em] = entry.endTime.split(':').map(Number);
+    } else {
+      const now = new Date();
+      eh = now.getHours();
+      em = now.getMinutes();
+    }
+    const diffMin = (eh * 60 + em) - (sh * 60 + sm);
+    seconds = diffMin > 0 ? diffMin * 60 : 0;
   }
-
-  const startTotal = sh * 60 + sm;
-  const endTotal = eh * 60 + em;
-  const diff = endTotal - startTotal;
-  return diff > 0 ? diff : 0;
+  return seconds;
 };
 
-// Formatea minutos en "Xh Ym" o "Ym"
-const formatMinutes = (minutes: number): string => {
-  if (minutes < 60) return `${minutes}m`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
+// Formatea en digital exacto HH:MM:SS
+const formatDigitalSeconds = (totalSec: number): string => {
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
+
+// Formatea en texto amigable "Xh Ym"
+const formatSecondsToFriendly = (totalSec: number): string => {
+  const mins = Math.floor(totalSec / 60);
+  if (mins < 60) return `${mins}m`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 };
 
@@ -131,6 +147,8 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
   state,
   currentUser,
   onStartTimeEntry,
+  onPauseTimeEntry,
+  onResumeTimeEntry,
   onStopTimeEntry,
   onAddManualTimeEntry,
   onUpdateTimeEntry,
@@ -146,7 +164,7 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
   const [quickActivity, setQuickActivity] = useState('');
   const [quickCategory, setQuickCategory] = useState<TimeCategory>('OPERATIONS');
 
-  // Contador de segundos para actualizar cronómetros en vivo
+  // Contador de segundos para actualizar cronómetros en vivo en cada segundo
   const [, setTicker] = useState<number>(0);
 
   // Modal para registro manual / edición
@@ -173,8 +191,8 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
     return state.timeEntries || [];
   }, [state.timeEntries]);
 
-  // Entrada activa del usuario actual
-  const currentRunningEntry = useMemo(() => {
+  // Entrada activa del usuario actual (puede estar corriendo o en pausa)
+  const currentActiveEntry = useMemo(() => {
     return timeEntries.find(
       (e) => e.userId === currentUser.id && e.isRunning
     );
@@ -184,12 +202,12 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
   const teamStatus = useMemo(() => {
     const users = state.users || [];
     return users.map((u) => {
-      const running = timeEntries.find((e) => e.userId === u.id && e.isRunning);
+      const activeEntry = timeEntries.find((e) => e.userId === u.id && e.isRunning);
       const todayEntries = timeEntries.filter(
         (e) => e.userId === u.id && e.date === selectedDate
       );
-      const totalMinutesToday = todayEntries.reduce((acc, curr) => {
-        return acc + calculateMinutes(curr.startTime, curr.endTime);
+      const totalSecondsToday = todayEntries.reduce((acc, curr) => {
+        return acc + calculateEntryTotalSeconds(curr);
       }, 0);
 
       // Último registro completado hoy
@@ -199,11 +217,12 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
 
       return {
         user: u,
-        runningEntry: running,
+        activeEntry,
         todayEntries,
-        totalMinutesToday,
+        totalSecondsToday,
         lastCompleted,
-        isActive: !!running,
+        isActive: !!activeEntry && !activeEntry.isPaused,
+        isPaused: !!activeEntry && activeEntry.isPaused,
       };
     });
   }, [state.users, timeEntries, selectedDate]);
@@ -218,13 +237,15 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
   // Métricas generales de hoy
   const todayMetrics = useMemo(() => {
     const activeNowCount = teamStatus.filter((t) => t.isActive).length;
-    const totalMinutesTeam = teamStatus.reduce((acc, t) => acc + t.totalMinutesToday, 0);
-    const myMinutesToday = teamStatus.find((t) => t.user.id === currentUser.id)?.totalMinutesToday || 0;
+    const pausedCount = teamStatus.filter((t) => t.isPaused).length;
+    const totalSecTeam = teamStatus.reduce((acc, t) => acc + t.totalSecondsToday, 0);
+    const mySecToday = teamStatus.find((t) => t.user.id === currentUser.id)?.totalSecondsToday || 0;
 
     return {
       activeNowCount,
-      totalMinutesTeam,
-      myMinutesToday,
+      pausedCount,
+      totalSecTeam,
+      mySecToday,
       totalUsers: state.users?.length || 0,
     };
   }, [teamStatus, currentUser.id, state.users]);
@@ -237,6 +258,16 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
     }
     await onStartTimeEntry(quickActivity, quickCategory);
     setQuickActivity('');
+  };
+
+  // Manejador para pausar cronómetro
+  const handlePauseTimer = async (id: string) => {
+    await onPauseTimeEntry(id);
+  };
+
+  // Manejador para reanudar cronómetro
+  const handleResumeTimer = async (id: string) => {
+    await onResumeTimeEntry(id);
   };
 
   // Manejador para detener cronómetro
@@ -310,6 +341,8 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
     setIsModalOpen(false);
   };
 
+  const currentSeconds = currentActiveEntry ? calculateEntryTotalSeconds(currentActiveEntry) : 0;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* 1. TARJETAS DE INDICADORES (KPIs EJECUTIVOS) */}
@@ -349,10 +382,14 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
           <div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Mi Tiempo Registrado Hoy</div>
             <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-main)' }}>
-              {formatMinutes(todayMetrics.myMinutesToday)}
+              {formatSecondsToFriendly(todayMetrics.mySecToday)}
             </div>
-            <div style={{ fontSize: '11px', color: currentRunningEntry ? 'var(--color-success)' : 'var(--text-subtle)' }}>
-              {currentRunningEntry ? '🟢 Cronómetro activo' : '⚪ Sin tarea activa'}
+            <div style={{ fontSize: '11px', color: currentActiveEntry?.isPaused ? 'var(--color-warning)' : currentActiveEntry ? 'var(--color-success)' : 'var(--text-subtle)' }}>
+              {currentActiveEntry?.isPaused
+                ? '⏸ En Pausa temporal'
+                : currentActiveEntry
+                ? '🟢 Cronómetro corriendo'
+                : '⚪ Sin tarea activa'}
             </div>
           </div>
         </div>
@@ -384,12 +421,17 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
             <Users size={22} />
           </div>
           <div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Equipo Activo en este Momento</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Equipo en Actividad Ahora</div>
             <div style={{ fontSize: '22px', fontWeight: 700, color: '#10b981' }}>
-              {todayMetrics.activeNowCount} / {todayMetrics.totalUsers}
+              {todayMetrics.activeNowCount} <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)' }}>activos</span>
+              {todayMetrics.pausedCount > 0 && (
+                <span style={{ fontSize: '14px', fontWeight: 500, color: '#f59e0b', marginLeft: '6px' }}>
+                  • {todayMetrics.pausedCount} en pausa
+                </span>
+              )}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-subtle)' }}>
-              Colaboradores con tarea en curso
+              De {todayMetrics.totalUsers} colaboradores totales
             </div>
           </div>
         </div>
@@ -423,7 +465,7 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
           <div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Horas Totales del Equipo</div>
             <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-main)' }}>
-              {formatMinutes(todayMetrics.totalMinutesTeam)}
+              {formatSecondsToFriendly(todayMetrics.totalSecTeam)}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-subtle)' }}>
               Acumuladas el {selectedDate === todayStr ? 'día de hoy' : selectedDate}
@@ -432,14 +474,20 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
         </div>
       </div>
 
-      {/* 2. BARRA DE ACCIÓN: CRONÓMETRO PERSONAL */}
+      {/* 2. BARRA DE ACCIÓN: CRONÓMETRO CON INICIAR, PAUSAR, REANUDAR Y DETENER */}
       <div
         style={{
-          backgroundColor: currentRunningEntry ? 'rgba(37, 99, 235, 0.08)' : 'var(--bg-card)',
+          backgroundColor: currentActiveEntry
+            ? currentActiveEntry.isPaused
+              ? 'rgba(245, 158, 11, 0.08)'
+              : 'rgba(37, 99, 235, 0.08)'
+            : 'var(--bg-card)',
           borderRadius: 'var(--radius-lg, 12px)',
           padding: '18px 22px',
-          border: currentRunningEntry
-            ? '1px solid rgba(59, 130, 246, 0.5)'
+          border: currentActiveEntry
+            ? currentActiveEntry.isPaused
+              ? '1px solid rgba(245, 158, 11, 0.5)'
+              : '1px solid rgba(59, 130, 246, 0.5)'
             : '1px solid var(--border-color)',
           display: 'flex',
           flexDirection: 'column',
@@ -448,35 +496,47 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '18px' }}>⏱</span>
+            <span style={{ fontSize: '20px' }}>
+              {currentActiveEntry ? (currentActiveEntry.isPaused ? '⏸' : '⏱') : '▶'}
+            </span>
             <div>
               <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: 'var(--text-main)' }}>
-                {currentRunningEntry ? 'Tarea activa en tu jornada' : '¿Qué estás haciendo ahora?'}
+                {currentActiveEntry
+                  ? currentActiveEntry.isPaused
+                    ? 'Tarea en pausa — ¿Listo para reanudar?'
+                    : 'Tarea en curso para ti'
+                  : '¿Qué estás haciendo ahora?'}
               </h3>
               <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
-                {currentRunningEntry
-                  ? `Iniciada a las ${currentRunningEntry.startTime} (transcurridos ${formatMinutes(
-                      calculateMinutes(currentRunningEntry.startTime)
-                    )})`
-                  : 'Registra tus actividades para transparentar el avance de la jornada en tiempo real'}
+                {currentActiveEntry
+                  ? `Iniciada a las ${currentActiveEntry.startTime} • Puedes pausar si tomas un descanso o detendrás al finalizar`
+                  : 'Registra tus actividades: puedes Iniciar, Pausar en cualquier momento y Detener al concluir'}
               </p>
             </div>
           </div>
 
-          {currentRunningEntry && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Cronómetro Digital y Botones (Pausar / Reanudar / Detener) */}
+          {currentActiveEntry && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              {/* Reloj Digital HH:MM:SS */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  color: '#10b981',
-                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  backgroundColor: currentActiveEntry.isPaused
+                    ? 'rgba(245, 158, 11, 0.15)'
+                    : 'rgba(16, 185, 129, 0.15)',
+                  color: currentActiveEntry.isPaused ? '#f59e0b' : '#10b981',
+                  border: `1px solid ${
+                    currentActiveEntry.isPaused ? 'rgba(245, 158, 11, 0.4)' : 'rgba(16, 185, 129, 0.4)'
+                  }`,
                   padding: '6px 14px',
                   borderRadius: '20px',
                   fontWeight: 700,
-                  fontSize: '14px',
+                  fontSize: '15px',
+                  fontFamily: 'monospace',
+                  letterSpacing: '1px',
                 }}
               >
                 <span
@@ -484,14 +544,61 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                     width: '8px',
                     height: '8px',
                     borderRadius: '50%',
-                    background: '#10b981',
+                    backgroundColor: currentActiveEntry.isPaused ? '#f59e0b' : '#10b981',
                   }}
                 />
-                {formatMinutes(calculateMinutes(currentRunningEntry.startTime))}
+                {formatDigitalSeconds(currentSeconds)}
+                {currentActiveEntry.isPaused && (
+                  <span style={{ fontSize: '11px', fontWeight: 600, marginLeft: '4px' }}>(PAUSADO)</span>
+                )}
               </div>
 
+              {/* Botón PAUSAR o REANUDAR */}
+              {currentActiveEntry.isPaused ? (
+                <button
+                  onClick={() => handleResumeTimer(currentActiveEntry.id)}
+                  className="btn btn-sm"
+                  style={{
+                    backgroundColor: '#10b981',
+                    color: '#ffffff',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                  }}
+                  title="Reanudar el cronómetro de esta tarea"
+                >
+                  <Play size={15} fill="white" /> Reanudar
+                </button>
+              ) : (
+                <button
+                  onClick={() => handlePauseTimer(currentActiveEntry.id)}
+                  className="btn btn-sm"
+                  style={{
+                    backgroundColor: '#f59e0b',
+                    color: '#ffffff',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                  }}
+                  title="Pausar temporalmente (para descanso, almuerzo o llamada)"
+                >
+                  <Pause size={15} fill="white" /> Pausar
+                </button>
+              )}
+
+              {/* Botón DETENER / FINALIZAR */}
               <button
-                onClick={() => handleStopTimer(currentRunningEntry.id)}
+                onClick={() => handleStopTimer(currentActiveEntry.id)}
                 className="btn btn-danger btn-sm"
                 style={{
                   display: 'flex',
@@ -500,15 +607,16 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                   padding: '8px 14px',
                   fontWeight: 600,
                 }}
+                title="Detener y sellar hora de fin definitivamente"
               >
-                <Square size={14} fill="white" /> Detener Tarea
+                <Square size={14} fill="white" /> Detener
               </button>
             </div>
           )}
         </div>
 
-        {/* Input y Controles */}
-        {!currentRunningEntry ? (
+        {/* Input y Controles de Inicio */}
+        {!currentActiveEntry ? (
           <div
             style={{
               display: 'grid',
@@ -587,20 +695,20 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span
                 style={{
-                  backgroundColor: CATEGORY_CONFIG[currentRunningEntry.category]?.bg,
-                  color: CATEGORY_CONFIG[currentRunningEntry.category]?.color,
-                  border: `1px solid ${CATEGORY_CONFIG[currentRunningEntry.category]?.border}`,
+                  backgroundColor: CATEGORY_CONFIG[currentActiveEntry.category]?.bg,
+                  color: CATEGORY_CONFIG[currentActiveEntry.category]?.color,
+                  border: `1px solid ${CATEGORY_CONFIG[currentActiveEntry.category]?.border}`,
                   padding: '3px 8px',
                   borderRadius: '6px',
                   fontSize: '11px',
                   fontWeight: 600,
                 }}
               >
-                {CATEGORY_CONFIG[currentRunningEntry.category]?.icon}{' '}
-                {CATEGORY_CONFIG[currentRunningEntry.category]?.label}
+                {CATEGORY_CONFIG[currentActiveEntry.category]?.icon}{' '}
+                {CATEGORY_CONFIG[currentActiveEntry.category]?.label}
               </span>
               <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-main)' }}>
-                {currentRunningEntry.activity}
+                {currentActiveEntry.activity}
               </span>
             </div>
 
@@ -690,8 +798,9 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
             gap: '16px',
           }}
         >
-          {teamStatus.map(({ user, runningEntry, totalMinutesToday, lastCompleted, isActive }) => {
+          {teamStatus.map(({ user, activeEntry, totalSecondsToday, lastCompleted, isActive, isPaused }) => {
             const isMe = user.id === currentUser.id;
+            const entrySecs = activeEntry ? calculateEntryTotalSeconds(activeEntry) : 0;
 
             return (
               <div
@@ -701,12 +810,18 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                   borderRadius: 'var(--radius-lg, 12px)',
                   border: isActive
                     ? '1px solid rgba(16, 185, 129, 0.6)'
+                    : isPaused
+                    ? '1px solid rgba(245, 158, 11, 0.6)'
                     : '1px solid var(--border-color)',
                   padding: '16px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '12px',
-                  boxShadow: isActive ? '0 0 12px rgba(16, 185, 129, 0.1)' : 'none',
+                  boxShadow: isActive
+                    ? '0 0 12px rgba(16, 185, 129, 0.1)'
+                    : isPaused
+                    ? '0 0 12px rgba(245, 158, 11, 0.1)'
+                    : 'none',
                 }}
               >
                 {/* Cabecera del usuario */}
@@ -754,7 +869,7 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Estado en vivo */}
+                  {/* Estado en vivo: ACTIVO / PAUSA / INACTIVO */}
                   {isActive ? (
                     <div
                       style={{
@@ -778,7 +893,32 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                           background: '#10b981',
                         }}
                       />
-                      EN CURSO
+                      ACTIVO
+                    </div>
+                  ) : isPaused ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'rgba(245, 158, 11, 0.15)',
+                        color: '#f59e0b',
+                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: '#f59e0b',
+                        }}
+                      />
+                      EN PAUSA
                     </div>
                   ) : (
                     <div
@@ -791,7 +931,7 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                         border: '1px solid var(--border-subtle, rgba(255,255,255,0.06))',
                       }}
                     >
-                      Pausa / Inactivo
+                      Sin tarea activa
                     </div>
                   )}
                 </div>
@@ -801,15 +941,19 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                   style={{
                     backgroundColor: isActive
                       ? 'rgba(16, 185, 129, 0.06)'
+                      : isPaused
+                      ? 'rgba(245, 158, 11, 0.06)'
                       : 'var(--bg-card-subtle, rgba(0, 0, 0, 0.15))',
                     borderRadius: '8px',
                     padding: '10px 12px',
                     border: isActive
                       ? '1px solid rgba(16, 185, 129, 0.25)'
+                      : isPaused
+                      ? '1px solid rgba(245, 158, 11, 0.25)'
                       : '1px solid var(--border-color)',
                   }}
                 >
-                  {isActive && runningEntry ? (
+                  {activeEntry ? (
                     <div>
                       <div
                         style={{
@@ -823,18 +967,25 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                           style={{
                             fontSize: '10px',
                             fontWeight: 700,
-                            color: '#10b981',
+                            color: isPaused ? '#f59e0b' : '#10b981',
                             letterSpacing: '0.04em',
                           }}
                         >
-                          ACTIVIDAD ACTUAL:
+                          {isPaused ? 'EN PAUSA TEMPORAL:' : 'TRABAJANDO AHORA:'}
                         </span>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#10b981' }}>
-                          Lleva {formatMinutes(calculateMinutes(runningEntry.startTime))}
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: isPaused ? '#f59e0b' : '#10b981',
+                            fontFamily: 'monospace',
+                          }}
+                        >
+                          {formatDigitalSeconds(entrySecs)}
                         </span>
                       </div>
                       <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-main)' }}>
-                        {runningEntry.activity}
+                        {activeEntry.activity}
                       </div>
                       <div
                         style={{
@@ -847,11 +998,11 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                         }}
                       >
                         <span>
-                          {CATEGORY_CONFIG[runningEntry.category]?.icon}{' '}
-                          {CATEGORY_CONFIG[runningEntry.category]?.label}
+                          {CATEGORY_CONFIG[activeEntry.category]?.icon}{' '}
+                          {CATEGORY_CONFIG[activeEntry.category]?.label}
                         </span>
                         <span>•</span>
-                        <span>Desde {runningEntry.startTime}</span>
+                        <span>Inicio: {activeEntry.startTime}</span>
                       </div>
                     </div>
                   ) : lastCompleted ? (
@@ -882,7 +1033,7 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                   }}
                 >
                   <span style={{ color: 'var(--text-muted)' }}>
-                    Total hoy: <strong style={{ color: 'var(--text-main)' }}>{formatMinutes(totalMinutesToday)}</strong>
+                    Total acumulado: <strong style={{ color: 'var(--text-main)' }}>{formatSecondsToFriendly(totalSecondsToday)}</strong>
                   </span>
                   <button
                     onClick={() => handleOpenAddModal(user.id)}
@@ -895,7 +1046,7 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                       fontWeight: 600,
                     }}
                   >
-                    + Registrar Bloque
+                    + Bloque Manual
                   </button>
                 </div>
               </div>
@@ -928,8 +1079,8 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                 Mis bloques de tiempo ({selectedDate})
               </h3>
               <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>
-                Total acumulado: {formatMinutes(
-                  myEntries.reduce((acc, curr) => acc + calculateMinutes(curr.startTime, curr.endTime), 0)
+                Total acumulado en este día: {formatSecondsToFriendly(
+                  myEntries.reduce((acc, curr) => acc + calculateEntryTotalSeconds(curr), 0)
                 )}
               </p>
             </div>
@@ -947,13 +1098,13 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
               <Clock size={32} style={{ marginBottom: '8px', opacity: 0.4 }} />
               <div style={{ fontSize: '13px' }}>No tienes bloques de tiempo registrados en esta fecha.</div>
               <div style={{ fontSize: '11px', color: 'var(--text-subtle)', marginTop: '4px' }}>
-                Usa el cronómetro superior o haz clic en «Añadir Bloque».
+                Usa los botones Iniciar / Pausar / Detener o añade un bloque manual.
               </div>
             </div>
           ) : (
             <div>
               {myEntries.map((entry) => {
-                const durationMin = calculateMinutes(entry.startTime, entry.endTime);
+                const totalSec = calculateEntryTotalSeconds(entry);
                 const cat = CATEGORY_CONFIG[entry.category] || CATEGORY_CONFIG.OTHER;
 
                 return (
@@ -977,7 +1128,7 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                           color: 'var(--text-muted)',
                         }}
                       >
-                        {entry.startTime} - {entry.endTime || 'En curso...'}
+                        {entry.startTime} - {entry.endTime || (entry.isPaused ? 'En pausa' : 'En curso...')}
                       </div>
 
                       <span
@@ -1003,23 +1154,59 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                         style={{
                           fontSize: '12px',
                           fontWeight: 700,
-                          color: entry.isRunning ? '#10b981' : 'var(--text-muted)',
+                          color: entry.isPaused
+                            ? '#f59e0b'
+                            : entry.isRunning
+                            ? '#10b981'
+                            : 'var(--text-muted)',
+                          fontFamily: 'monospace',
                         }}
                       >
-                        {entry.isRunning ? '🟢 ' : ''}
-                        {formatMinutes(durationMin)}
+                        {entry.isPaused ? '⏸ ' : entry.isRunning ? '🟢 ' : ''}
+                        {formatDigitalSeconds(totalSec)}
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {entry.isRunning && (
-                        <button
-                          onClick={() => handleStopTimer(entry.id)}
-                          className="btn btn-danger btn-sm"
-                          style={{ padding: '4px 8px', fontSize: '11px' }}
-                        >
-                          Detener
-                        </button>
+                        <>
+                          {entry.isPaused ? (
+                            <button
+                              onClick={() => handleResumeTimer(entry.id)}
+                              className="btn btn-sm"
+                              style={{
+                                backgroundColor: '#10b981',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '4px 8px',
+                                fontSize: '11px',
+                              }}
+                            >
+                              Reanudar
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handlePauseTimer(entry.id)}
+                              className="btn btn-sm"
+                              style={{
+                                backgroundColor: '#f59e0b',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '4px 8px',
+                                fontSize: '11px',
+                              }}
+                            >
+                              Pausar
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleStopTimer(entry.id)}
+                            className="btn btn-danger btn-sm"
+                            style={{ padding: '4px 8px', fontSize: '11px' }}
+                          >
+                            Detener
+                          </button>
+                        </>
                       )}
                       <button
                         onClick={() => handleOpenEditModal(entry)}
@@ -1154,7 +1341,7 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                     return (
                       <div
                         key={entry.id}
-                        title={`${entry.startTime} - ${entry.endTime || 'Ahora'}: ${entry.activity}`}
+                        title={`${entry.startTime} - ${entry.endTime || (entry.isPaused ? 'Pausado' : 'Ahora')}: ${entry.activity}`}
                         style={{
                           position: 'absolute',
                           left: `${leftPct}%`,

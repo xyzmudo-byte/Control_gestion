@@ -304,6 +304,9 @@ export interface TimeEntry {
   deliverableId?: string;
   projectId?: string;
   isRunning: boolean;
+  isPaused?: boolean;
+  accumulatedSeconds?: number; // Segundos acumulados antes de pausar
+  lastStartedAt?: string; // Timestamp ISO cuando se inició o reanudó
   createdAt: string;
   updatedAt?: string;
 }

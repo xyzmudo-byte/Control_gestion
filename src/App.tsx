@@ -75,6 +75,8 @@ export const App: React.FC = () => {
     convertChatMessageToLogbook,
     // Time Tracker
     startTimeEntry,
+    pauseTimeEntry,
+    resumeTimeEntry,
     stopTimeEntry,
     addManualTimeEntry,
     updateTimeEntry,
@@ -385,6 +387,8 @@ export const App: React.FC = () => {
               state={state}
               currentUser={currentUser}
               onStartTimeEntry={startTimeEntry}
+              onPauseTimeEntry={pauseTimeEntry}
+              onResumeTimeEntry={resumeTimeEntry}
               onStopTimeEntry={stopTimeEntry}
               onAddManualTimeEntry={addManualTimeEntry}
               onUpdateTimeEntry={updateTimeEntry}
