@@ -200,7 +200,10 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
 
   // Lista de todos los colaboradores con su estado en vivo
   const teamStatus = useMemo(() => {
-    const users = state.users || [];
+    // Solo ADMIN y PARTICIPANT — los VIEWER (Edgar, Lorena) son externos y no registran tiempo
+    const users = (state.users || []).filter(
+      (u) => u.role === 'ADMIN' || u.role === 'PARTICIPANT'
+    );
     return users.map((u) => {
       const activeEntry = timeEntries.find((e) => e.userId === u.id && e.isRunning);
       const todayEntries = timeEntries.filter(
@@ -1393,7 +1396,9 @@ export const TimeTrackerView: React.FC<TimeTrackerViewProps> = ({
                   className="form-control"
                   style={{ fontSize: '13px' }}
                 >
-                  {(state.users || []).map((u) => (
+                  {(state.users || [])
+                    .filter((u) => u.role === 'ADMIN' || u.role === 'PARTICIPANT')
+                    .map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.name} ({u.roleTitle || u.role})
                     </option>
